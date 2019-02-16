@@ -31,9 +31,13 @@ class StackedMemoryHop(nn.Module):
                     previous_memory_hop_layer = self.memory_hop_layers[i-1]
                     if self.weight_tying == "layer-wise":
                         memory_hop_layer.memory_embedding = previous_memory_hop_layer.memory_embedding
+                        memory_hop_layer.temporal_encoding_memory = previous_memory_hop_layer.temporal_encoding_memory
+                        
                         memory_hop_layer.output_embedding = previous_memory_hop_layer.output_embedding
+                        memory_hop_layer.temporal_encoding_output = previous_memory_hop_layer.temporal_encoding_output
                     else:
                         memory_hop_layer.memory_embedding = previous_memory_hop_layer.output_embedding
+                        memory_hop_layer.temporal_encoding_memory = previous_memory_hop_layer.temporal_encoding_output
                 
                 self.memory_hop_layers.append(memory_hop_layer)
         
@@ -44,8 +48,8 @@ class StackedMemoryHop(nn.Module):
             self.H = nn.Linear(embedding_size, embedding_size)
             
         else:
-            self.memory_hop_layers[0].memory_embedding = self.question_embedding
-            final_memory_hop_layer.final_affine_transformation.weight.data = final_memory_hop_layer.output_embedding.weight.data.t()
+            self.question_embedding = self.memory_hop_layers[0].memory_embedding
+            final_memory_hop_layer.final_affine_transformation.weight.data = final_memory_hop_layer.output_embedding.weight.data
     
     def forward(self, q, x):
         u = self.question_embedding(q).sum(dim=1).unsqueeze(dim=1)

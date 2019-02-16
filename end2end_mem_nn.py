@@ -23,6 +23,18 @@ losses = []
 
 class End2endMemNnAgent(TorchAgent):
     
+    @staticmethod    
+    def add_cmdline_args(argparser):
+        TorchAgent.add_cmdline_args(argparser)
+        agent = argparser.add_argument_group("End2End MemNN Arguments")
+        
+        agent.add_argument("-wt", "--weight-tying", type=str, default="layer-wise", help="Type of weight tying")
+        agent.add_argument("-nmh", "--num-memory-hops", type=int, default=3, help="Number of memory hops")
+        
+        End2endMemNnAgent.dictionary_class().add_cmdline_args(argparser)
+        
+        return agent
+    
     def __init__(self, opt, shared=None):
         
         super().__init__(opt, shared)
@@ -32,8 +44,8 @@ class End2endMemNnAgent(TorchAgent):
         
         self.dictionnary_size = 177
         self.embedding_dim = 100
-        self.K = 3
-        self.weight_tying = "layer-wise"
+        self.K = opt["nummemoryhops"]
+        self.weight_tying = opt["weighttying"]
         self.criterion = nn.NLLLoss()
         
         def weight_init(m):
@@ -63,6 +75,14 @@ class End2endMemNnAgent(TorchAgent):
         questions, answers = batch.text_vec, batch.label_vec
         contexts = padded_3d(batch.memory_vecs)
         
+        self.position_encoding_matrix = torch.zeros([self.embedding_dim, contexts.shape[2]])
+        for k in range(1, self.position_encoding_matrix.shape[0] + 1):
+            for j in range(1, self.position_encoding_matrix.shape[1] + 1):
+                jJ = j / self.position_encoding_matrix.shape[1]
+                self.position_encoding_matrix[k-1,j-1] = (1 - jJ) - (k/self.position_encoding_matrix.shape[0]) * (1 - 2 * jJ)
+        
+        self.stacked_memory_hop.memory_hop_layers[0].position_encoding_matrix = self.position_encoding_matrix.t()
+        
         loss = 0
         self.optimizer.zero_grad()
 
@@ -82,12 +102,13 @@ class End2endMemNnAgent(TorchAgent):
                     #self.writer.add_histogram(name_in + "_grad", param_in.grad.clone().cpu().data.numpy(), self.batch_iter)
         
         #print("Loss : ", loss.item())
+        self.writer.add_histogram("predictions", output.clone().cpu().data.numpy(), self.batch_iter)
         loss.backward()
         self.optimizer.step()
         
         self.batch_iter+= 1
         
-        return Output(self.dict.vec2txt(pred))
+        return Output(self.dict.vec2txt(pred).split(" "))
     
     def eval_step(self, batch):
         questions = batch.text_vec
@@ -96,7 +117,7 @@ class End2endMemNnAgent(TorchAgent):
         output = self.stacked_memory_hop(questions, contexts)
         pred = output.argmax(dim=2)
         
-        return Output(self.dict.vec2txt(pred))
+        return Output(self.dict.vec2txt(pred).split(" "))
     
     
     
