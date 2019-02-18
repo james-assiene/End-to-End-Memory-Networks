@@ -13,12 +13,13 @@ import torch.nn.functional as F
 
 class SingleMemoryHop(nn.Module):
     
-    def __init__(self, dictionnary_size, embedding_size, is_final_layer=False):
+    def __init__(self, dictionnary_size, embedding_size, is_final_layer=False, use_temporal_encoding=True):
         
         super(SingleMemoryHop, self).__init__()
         self.memory_embedding = nn.Embedding(dictionnary_size, embedding_size)
         self.output_embedding = nn.Embedding(dictionnary_size, embedding_size)
         self.is_final_layer = is_final_layer
+        self.use_temporal_encoding = use_temporal_encoding
         self.position_encoding_matrix = None
         self.memory_size = 320
         self.temporal_encoding_matrix_memory = torch.zeros([self.memory_size, embedding_size])
@@ -41,9 +42,10 @@ class SingleMemoryHop(nn.Module):
             m = m * self.position_encoding_matrix
             
         m = m.sum(dim=2)
-        #m+=  + self.temporal_encoding_memory[:m.shape[1]]
         c = self.output_embedding(x).sum(dim=2)
-        #c+=  + self.temporal_encoding_output[:m.shape[1]]
+        if self.use_temporal_encoding:
+            m+=  self.temporal_encoding_memory[:m.shape[1]]
+            c+=  self.temporal_encoding_output[:m.shape[1]]
         
         p = F.softmax(u.bmm(m.transpose(1,2)), dim=2)
         

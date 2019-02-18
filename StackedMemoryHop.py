@@ -14,7 +14,7 @@ from SingleMemoryHop import SingleMemoryHop
 
 class StackedMemoryHop(nn.Module):
     
-    def __init__(self, K, dictionnary_size, embedding_size, weight_tying="layer-wise"):
+    def __init__(self, K, dictionnary_size, embedding_size, weight_tying="layer-wise", use_temporal_encoding=True):
         
         super(StackedMemoryHop, self).__init__()
         self.K = K
@@ -25,7 +25,7 @@ class StackedMemoryHop(nn.Module):
         self.memory_hop_layers = []
         if K > 1:
             for i in range(K-1):
-                memory_hop_layer = SingleMemoryHop(dictionnary_size, embedding_size)
+                memory_hop_layer = SingleMemoryHop(dictionnary_size, embedding_size, use_temporal_encoding=use_temporal_encoding)
                 
                 if i > 0:
                     previous_memory_hop_layer = self.memory_hop_layers[i-1]
@@ -41,7 +41,7 @@ class StackedMemoryHop(nn.Module):
                 
                 self.memory_hop_layers.append(memory_hop_layer)
         
-        final_memory_hop_layer = SingleMemoryHop(dictionnary_size, embedding_size, is_final_layer=True)
+        final_memory_hop_layer = SingleMemoryHop(dictionnary_size, embedding_size, is_final_layer=True, use_temporal_encoding=use_temporal_encoding)
         self.memory_hop_layers.append(final_memory_hop_layer)
         
         if weight_tying == "layer-wise":

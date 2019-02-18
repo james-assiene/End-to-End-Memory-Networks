@@ -30,6 +30,7 @@ class End2endMemNnAgent(TorchAgent):
         
         agent.add_argument("-wt", "--weight-tying", type=str, default="layer-wise", help="Type of weight tying")
         agent.add_argument("-nmh", "--num-memory-hops", type=int, default=3, help="Number of memory hops")
+        agent.add_argument("-tmpe", "--temporal-encoding", type=str, default="yes", help="Number of memory hops")
         
         End2endMemNnAgent.dictionary_class().add_cmdline_args(argparser)
         
@@ -44,15 +45,16 @@ class End2endMemNnAgent(TorchAgent):
         
         self.dictionnary_size = 177
         self.embedding_dim = 100
-        self.K = opt["nummemoryhops"]
-        self.weight_tying = opt["weighttying"]
+        self.K = opt["num_memory_hops"]
+        self.weight_tying = opt["weight_tying"]
+        self.use_temporal_encoding = True if opt["temporal_encoding"] == "yes" else False
         self.criterion = nn.NLLLoss()
         
         def weight_init(m):
             if isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight.data)
         
-        self.stacked_memory_hop = StackedMemoryHop(self.K, self.dictionnary_size, self.embedding_dim, self.weight_tying)
+        self.stacked_memory_hop = StackedMemoryHop(self.K, self.dictionnary_size, self.embedding_dim, self.weight_tying, use_temporal_encoding=self.use_temporal_encoding)
         self.stacked_memory_hop.apply(weight_init)
         self.optimizer = optim.Adam(self.stacked_memory_hop.parameters())
         #self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, 25, 0.5)
@@ -128,8 +130,8 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     opt["tensorboard_log"] = True
     opt["model_file"] = "m1"
-    opt["tensorboard_tag"] = "task,batchsize"
-    opt["tensorboard_metrics"] = "all"
+    opt["tensorboard_tag"] = "task,batchsize,weight_tying,temporal_encoding"
+    opt["tensorboard_metrics"] = "loss,accuracy"
     opt["metrics"] = "all"
     #opt["model"] = "end2end_mem_nn"
     #opt["no_cuda"] = True
