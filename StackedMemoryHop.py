@@ -43,6 +43,7 @@ class StackedMemoryHop(nn.Module):
         
         final_memory_hop_layer = SingleMemoryHop(dictionnary_size, embedding_size, is_final_layer=True, use_temporal_encoding=use_temporal_encoding)
         self.memory_hop_layers.append(final_memory_hop_layer)
+        self.memory_hop_layers = nn.ModuleList(self.memory_hop_layers)
         
         if weight_tying == "layer-wise":
             self.H = nn.Linear(embedding_size, embedding_size)
@@ -55,7 +56,7 @@ class StackedMemoryHop(nn.Module):
         u = self.question_embedding(q).sum(dim=1).unsqueeze(dim=1)
 
         for i in range(self.K):
-            memory_hop_layer = self.memory_hop_layers[i]                   
+            memory_hop_layer = self.memory_hop_layers[i]
             o = memory_hop_layer(x, u)
             
             if i < self.K-1:
