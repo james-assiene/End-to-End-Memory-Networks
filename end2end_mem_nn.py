@@ -43,7 +43,7 @@ class End2endMemNnAgent(TorchRankerAgent):
         argparser.set_defaults(
             split_lines=True, add_p1_after_newln=True, encode_candidate_vecs=True
         )
-        
+
         End2endMemNnAgent.dictionary_class().add_cmdline_args(argparser)
         
         return agent
@@ -89,7 +89,7 @@ class End2endMemNnAgent(TorchRankerAgent):
         self.model = self.stacked_memory_hop
         self.model.share_memory()
         
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        # self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         
         self.writer = SummaryWriter()
         
